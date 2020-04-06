@@ -1,4 +1,8 @@
 import {Entity, model, property, hasMany} from '@loopback/repository';
+import {CommentVote} from './comment-vote.model';
+import {CommentVoteRepository} from '../repositories';
+
+import {UserProfile, securityId} from '@loopback/security';
 
 @model()
 export class Comment extends Entity {
@@ -42,14 +46,55 @@ export class Comment extends Entity {
   @hasMany(() => Comment, {keyTo: 'replyTo'})
   replies: Comment[];
 
+  @hasMany(() => CommentVote)
+  votes: CommentVote[];
+
   constructor(data?: Partial<Comment>) {
     super(data);
+  }
+
+  async withUserVote(repo: CommentVoteRepository, profile?: UserProfile): Promise<CommentWithRelations> {
+    let name = profile ? profile[securityId] : undefined;
+
+    const upvotes = await repo.count({
+      commentId: this.commentId,
+      isUpvote: true,
+    });
+
+    const downvotes = await repo.count({
+      commentId: this.commentId,
+      isUpvote: false,
+    });
+    let votesExclUser = upvotes.count - downvotes.count;
+    
+    let userVote = undefined;
+    if (profile) {
+      userVote = await repo.findOne({
+        where: {
+          commentId: this.commentId,
+          userName: profile[securityId],
+        }
+      });
+
+      if (userVote) {
+        votesExclUser += userVote.isUpvote ? -1 : 1;
+      }
+    }
+
+    return {
+      ...this,
+      votesExclUser,
+      userVote,
+    } as CommentWithRelations;
   }
 }
 
 export interface CommentRelations {
   // describe navigational properties here
-  replies: Comment[]
+  replies: Comment[],
+
+  votesExclUser: number,
+  userVote?: CommentVote
 }
 
 export type CommentWithRelations = Comment & CommentRelations;

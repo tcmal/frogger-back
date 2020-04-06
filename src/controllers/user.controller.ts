@@ -2,6 +2,7 @@ import {
   repository,
 } from '@loopback/repository';
 import {
+  get,
   post,
   getModelSchemaRef,
   del,
@@ -16,7 +17,7 @@ import {
   PasswordHasherBindings,
   UserServiceBindings,
 } from '../keys';
-import {SecurityBindings, UserProfile} from "@loopback/security";
+import {SecurityBindings, UserProfile, securityId} from "@loopback/security";
 import {UserService, TokenService, authenticate} from "@loopback/authentication";
 import {LOGGED_IN} from '../spec/';
 
@@ -108,6 +109,42 @@ export class UserController {
     const profile = this.userService.convertToUserProfile(user);
 
     const token = await this.tokenService.generateToken(profile);
+
+    let expires = new Date();
+    expires.setTime(expires.getTime() + (this.expiresIn * 1000));
+
+    return {
+      token,
+      expires,
+      user
+    }
+  }
+
+  @get('/users/renewToken', {
+    security: LOGGED_IN,
+    responses: {
+      '200': {
+        description: 'Renewed JWT token',
+        content: {'application/json': {
+          schema: {
+            token: 'string',
+            expires: 'date',
+            user: getModelSchemaRef(User, {exclude: ['password']})
+          },
+        }}
+      }
+    }
+  })
+  @authenticate('jwt')
+  async renewToken(
+    @inject(SecurityBindings.USER) profile: UserProfile,
+  ): Promise<AuthResponse> {
+
+    const user = await this.userRepository.findById(profile[securityId]);
+
+    const newProfile = this.userService.convertToUserProfile(user);
+
+    const token = await this.tokenService.generateToken(newProfile);
 
     let expires = new Date();
     expires.setTime(expires.getTime() + (this.expiresIn * 1000));

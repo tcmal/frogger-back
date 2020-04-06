@@ -1,6 +1,6 @@
-import {inject} from '@loopback/context';
+import {inject, Getter} from '@loopback/context';
 import {HttpErrors, Request} from '@loopback/rest';
-import {AuthenticationStrategy, TokenService} from '@loopback/authentication';
+import {AuthenticationStrategy, TokenService, AuthenticationBindings, AuthenticationMetadata} from '@loopback/authentication';
 import {UserProfile} from '@loopback/security';
 
 import {TokenServiceBindings} from '../keys';
@@ -11,12 +11,21 @@ export class JWTAuthenticationStrategy implements AuthenticationStrategy {
   constructor(
     @inject(TokenServiceBindings.TOKEN_SERVICE)
     public tokenService: TokenService,
+    @inject.getter(AuthenticationBindings.METADATA)
+    readonly getMetaData: Getter<AuthenticationMetadata>,
   ) {}
 
-  async authenticate(request: Request): Promise<UserProfile | undefined> {
-    const token: string = this.extractCredentials(request);
-    const userProfile: UserProfile = await this.tokenService.verifyToken(token);
-    return userProfile;
+  async authenticate(request: Request, options?: object): Promise<UserProfile | undefined> {
+    const { optional } = (await this.getMetaData()).options || {optional: false};
+
+    try {
+      const token: string = this.extractCredentials(request);
+      const userProfile: UserProfile = await this.tokenService.verifyToken(token);
+      return userProfile;
+    } catch (e) {
+      if (!optional)
+        throw e;
+    }
   }
 
   extractCredentials(request: Request): string {

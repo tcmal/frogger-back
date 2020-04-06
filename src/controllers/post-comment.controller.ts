@@ -26,13 +26,14 @@ import {
   Comment,
   CommentWithRelations,
 } from '../models';
-import {PostRepository, PostVoteRepository} from '../repositories';
+import {PostRepository, PostVoteRepository, CommentVoteRepository} from '../repositories';
 import {LOGGED_IN} from '../spec';
 
 export class PostCommentController {
   constructor(
     @repository(PostRepository) protected postRepository: PostRepository,
     @repository(PostVoteRepository) protected postVoteRepository: PostVoteRepository,
+    @repository(CommentVoteRepository) protected commentVoteRepository: CommentVoteRepository,
   ) { }
 
   @get('/posts/{id}/comments', {
@@ -53,6 +54,7 @@ export class PostCommentController {
       },
     },
   })
+  @authenticate('jwt', {optional: true})
   async find(
     @param.path.number('id') id: number,
     @param.query.number('limit', {default: 20}) limit: number,
@@ -76,7 +78,10 @@ export class PostCommentController {
       include: [scopeRecurse]
     }
 
-    const comments: CommentWithRelations[] = await this.postRepository.comments(id).find(filter);
+    const comments: CommentWithRelations[] = await Promise.all(
+      (await this.postRepository.comments(id).find(filter))
+        .map(x => x.withUserVote(this.commentVoteRepository, profile))
+    );
 
     return {
       post: postWithVotes,

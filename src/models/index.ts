@@ -4,3 +4,4 @@ export * from './user.model';
 export * from './subscription.model';
 export * from './post-vote.model';
 export * from './comment.model';
+export * from './comment-vote.model';

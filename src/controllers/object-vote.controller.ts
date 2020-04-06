@@ -23,7 +23,7 @@ import {inject} from '@loopback/core';
 import {authenticate} from '@loopback/authentication';
 import {PostVote} from '../models';
 import {SecurityBindings, UserProfile, securityId} from '@loopback/security';
-import {PostVoteRepository} from '../repositories';
+import {PostVoteRepository, CommentVoteRepository} from '../repositories';
 import {LOGGED_IN} from '../spec';
 
 type CreateVote = {
@@ -34,8 +34,8 @@ type CreateVote = {
 
 export class ObjectVoteController {
   constructor(
-    @repository(PostVoteRepository)
-    public postVoteRepository : PostVoteRepository,
+    @repository(PostVoteRepository) public postVoteRepository : PostVoteRepository,
+    @repository(CommentVoteRepository) public commentVoteRepository : CommentVoteRepository,
   ) {}
 
   @post('/votes', {
@@ -66,27 +66,34 @@ export class ObjectVoteController {
     @inject(SecurityBindings.USER)
     profile: UserProfile,
   ): Promise<void> {
+    let repo, attr: string;
     if (body.objectType === "post") {
-      if (body.vote === "clear") {
-        await this.postVoteRepository.deleteAll({
-          userName: profile[securityId],
-          postId: body.objectId,
-        });
-      } else {
-        const val = {
-          postId: body.objectId,
-          userName: profile[securityId],
-          isUpvote: body.vote === "up",
-          compoundKey: profile[securityId] + "|" + body.objectId
-        };
-        try {
-          await this.postVoteRepository.replaceById(val.compoundKey, val);
-        } catch {
-          await this.postVoteRepository.create(val);
-        }
-      }
+      repo = this.postVoteRepository;
+      attr = "postId";
+    } else if (body.objectType == "comment") {
+      repo = this.commentVoteRepository;
+      attr = "commentId";
     } else {
       throw new HttpErrors.BadRequest("objectType should be post or comment");
+    }
+    
+    if (body.vote === "clear") {
+      await repo.deleteAll({
+        userName: profile[securityId],
+        postId: body.objectId,
+      });
+    } else {
+      const val = {
+        [attr]: body.objectId,
+        userName: profile[securityId],
+        isUpvote: body.vote === "up",
+        compoundKey: profile[securityId] + "|" + body.objectId
+      };
+      try {
+        await repo.replaceById(val.compoundKey, val);
+      } catch {
+        await repo.create(val);
+      }
     }
   }
 }
