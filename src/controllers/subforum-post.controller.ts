@@ -12,14 +12,17 @@ import {
 import {
   Subforum,
   Post,
+  PostWithVotes,
+  PostVote
 } from '../models';
-import {SubforumRepository} from '../repositories';
+import {SubforumRepository, PostVoteRepository} from '../repositories';
 import {authenticate} from '@loopback/authentication';
-import {SecurityBindings, UserProfile} from '@loopback/security';
+import {SecurityBindings, UserProfile, securityId} from '@loopback/security';
 
 export class SubforumPostController {
   constructor(
     @repository(SubforumRepository) protected subforumRepository: SubforumRepository,
+    @repository(PostVoteRepository) protected postVoteRepository: PostVoteRepository,
   ) { }
 
   @get('/subs/{id}/posts', {
@@ -30,7 +33,12 @@ export class SubforumPostController {
           'application/json': {
             schema: {
               subforum: getModelSchemaRef(Subforum),
-              posts: {type: 'array', items: getModelSchemaRef(Post)},
+              posts: {type: 'array', items: {
+                  ...getModelSchemaRef(Post),
+                  votesExclUser: 'number',
+                  userVote: getModelSchemaRef(PostVote, {exclude: ['compoundKey']})
+                },
+              },
             },
           },
         },
@@ -40,13 +48,19 @@ export class SubforumPostController {
   async subPosts(
     @param.path.string('id') id: string,
     @param.query.number('limit', {default: 20}) limit: number,
-    @param.query.dateTime('after', {default: new Date(0)}) after?: Date,
-  ): Promise<{subforum: Subforum, posts: Post[]}> {
+    @inject(SecurityBindings.USER, {optional: true})
+    profile?: UserProfile,
+    @param.query.dateTime('after') after?: Date,
+  ): Promise<{subforum: Subforum, posts: PostWithVotes[]}> {
+    let posts = await this.subforumRepository.posts(id).find({ where: {createdAt: after ? {gt: after} : undefined}, limit, order: ['createdAt DESC'] });
+
+    const postsWithVotes: PostWithVotes[] = await Promise.all(posts.map(async post => post.withUserVote(this.postVoteRepository, profile)));
+
     return {
       subforum: await this.subforumRepository.findById(id),
-      posts: await this.subforumRepository.posts(id).find({ where: {createdAt: {gt: after}}, limit })
+      posts: postsWithVotes
     };
-  }
+  };
 
   @post('/subs/{id}/posts', {
     responses: {

@@ -32,7 +32,7 @@ export class JWTService implements TokenService {
 
       // don't copy over  token field 'iat' and 'exp', nor 'email' to user profile
       userProfile = {
-        [securityId]: decryptedToken[securityId],
+        [securityId]: decryptedToken.name,
         name: decryptedToken.name,
       };;
 

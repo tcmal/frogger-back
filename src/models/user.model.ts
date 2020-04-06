@@ -45,10 +45,10 @@ export class User extends Entity {
   })
   createdAt: Date;
 
-  @hasMany(() => Post, {keyTo: 'posted_by'})
+  @hasMany(() => Post, {keyTo: 'postedBy'})
   posts: Post[];
 
-  @hasMany(() => Subscription, {keyTo: 'user_name'})
+  @hasMany(() => Subscription, {keyTo: 'userName'})
   subscriptions: Subscription[];
 
   constructor(data?: Partial<User>) {

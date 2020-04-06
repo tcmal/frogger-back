@@ -1,4 +1,5 @@
-import {Entity, model, property} from '@loopback/repository';
+import {Entity, model, property, belongsTo} from '@loopback/repository';
+import {Subforum} from './subforum.model';
 
 @model({
   settings: {
@@ -11,13 +12,6 @@ export class Subscription extends Entity {
     required: true,
   })
   userName: string;
-
-  @property({
-    type: 'string',
-    required: true,
-  })
-  subName: string;
-
   @property({
     type: 'string',
     id: true,
@@ -25,6 +19,9 @@ export class Subscription extends Entity {
     generated: false,
   })
   compoundKey: string;
+
+  @belongsTo(() => Subforum, {name: 'subforum'})
+  subName: string;
 
   constructor(data?: Partial<Subscription>) {
     super(data);

@@ -36,10 +36,10 @@ export class Subforum extends Entity {
   })
   ownerName: string;
 
-  @hasMany(() => Post, {keyTo: 'posted_to'})
+  @hasMany(() => Post, {keyTo: 'postedTo'})
   posts: Post[];
 
-  @hasMany(() => Subscription, {keyTo: 'sub_name'})
+  @hasMany(() => Subscription, {keyTo: 'subName'})
   subscriptions: Subscription[];
 
   constructor(data?: Partial<Subforum>) {

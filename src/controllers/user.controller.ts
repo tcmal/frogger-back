@@ -22,6 +22,7 @@ import {LOGGED_IN} from '../spec/';
 
 type AuthResponse = {
   token: string,
+  expires: Date
   user: User,
 }
 
@@ -33,6 +34,8 @@ export class UserController {
     public passwordHasher: PasswordHasher,
     @inject(TokenServiceBindings.TOKEN_SERVICE)
     public tokenService: TokenService,
+    @inject(TokenServiceBindings.TOKEN_EXPIRES_IN)
+    public expiresIn: number,
     @inject(UserServiceBindings.USER_SERVICE)
     public userService: UserService<User, Credentials>
   ) {}
@@ -41,7 +44,7 @@ export class UserController {
     responses: {
       '200': {
         description: 'User model instance',
-        content: {'application/json': {schema: getModelSchemaRef(User, {exclude: ['createdAt']})}},
+        content: {'application/json': {schema: getModelSchemaRef(User, {exclude: ['password']})}},
       },
     },
   })
@@ -49,7 +52,7 @@ export class UserController {
     @requestBody({
       content: {
         'application/json': {
-          schema: getModelSchemaRef(User),
+          schema: getModelSchemaRef(User, {exclude: ['createdAt']}),
         },
       },
     })
@@ -72,6 +75,7 @@ export class UserController {
         content: {'application/json': {
           schema: {
             token: 'string',
+            expires: 'date',
             user: getModelSchemaRef(User, {exclude: ['password']})
           },
         }}
@@ -105,8 +109,12 @@ export class UserController {
 
     const token = await this.tokenService.generateToken(profile);
 
+    let expires = new Date();
+    expires.setTime(expires.getTime() + (this.expiresIn * 1000));
+
     return {
       token,
+      expires,
       user
     }
   }

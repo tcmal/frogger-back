@@ -1,5 +1,11 @@
-import {Entity, model, property, belongsTo} from '@loopback/repository';
+import {DefaultCrudRepository} from '@loopback/repository';
+import {Entity, model, property, belongsTo, hasMany} from '@loopback/repository';
+import {UserProfile, securityId} from '@loopback/security';
+
+import {PostVoteRepository} from '../repositories/'
 import {Subforum} from './subforum.model';
+import {PostVote, PostVoteRelations} from './post-vote.model';
+import {Comment} from './comment.model';
 
 @model()
 export class Post extends Entity {
@@ -52,13 +58,60 @@ export class Post extends Entity {
   @belongsTo(() => Subforum, {name: 'subforum'})
   postedTo: string;
 
+  @hasMany(() => PostVote)
+  votes: PostVote[];
+
+  @hasMany(() => Comment)
+  comments: Comment[];
+
   constructor(data?: Partial<Post>) {
     super(data);
   }
+
+  async withUserVote(postVoteRepository: DefaultCrudRepository<
+      PostVote,
+      typeof PostVote.prototype.compoundKey,
+      PostVoteRelations
+    >, profile?: UserProfile): Promise<PostWithVotes> {
+    let name = profile ? profile[securityId] : undefined;
+
+    const upvotes = await postVoteRepository.count({
+      postId: this.id,
+      isUpvote: true,
+    });
+
+    const downvotes = await postVoteRepository.count({
+      postId: this.id,
+      isUpvote: false,
+    });
+    let votesExclUser = upvotes.count - downvotes.count;
+    
+    let userVote = undefined;
+    if (profile) {
+      userVote = await postVoteRepository.findOne({
+        where: {
+          postId: this.id,
+          userName: profile[securityId],
+        }
+      });
+
+      if (userVote) {
+        votesExclUser += userVote.isUpvote ? -1 : 1;
+      }
+    }
+
+    return {
+      ...this,
+      votesExclUser,
+      userVote,
+    } as PostWithVotes;
+  }
 }
 
-export interface PostRelations {
+export interface PostVotes {
   // describe navigational properties here
+  votesExclUser: number,
+  userVote?: PostVote
 }
 
-export type PostWithRelations = Post & PostRelations;
+export type PostWithVotes = Post & PostVotes;
