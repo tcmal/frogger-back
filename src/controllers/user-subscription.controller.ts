@@ -59,7 +59,7 @@ export class UserSubscriptionController {
       },
     })).map(x => x.subName);
 
-    // Get posts form those subs
+    // Get posts from those subs
     const posts = await this.postRepository.find({
       where: {
         postedTo: {inq: subscriptions},
@@ -96,7 +96,14 @@ export class UserSubscriptionController {
     @param.query.string('after') after?: string,
   ): Promise<Subforum[]> {
     // Owned subs
-    const owned = await this.subforumRepository.find({where: {ownerName: profile[securityId]}, order: ['name ASC'], limit: limit});
+    const owned = await this.subforumRepository.find({
+      where: {
+        ownerName: profile[securityId],
+        name: after ? {gt: after} : undefined
+      },
+      order: ['name ASC'],
+      limit: limit
+    });
 
     // Names of subscribed subs
     const subscriptions = (await this.subscriptionRepository.find({
@@ -108,10 +115,11 @@ export class UserSubscriptionController {
       limit: limit - owned.length,
     })).map(x => x.subName);
 
-    // Full subscription details
+    // Full subscription details, also filter out owned to avoid duplicates
     const subscribedTo = await this.subforumRepository.find({
       where: {
-        name: {inq: subscriptions}
+        name: {inq: subscriptions},
+        ownerName: {neq: profile[securityId]},
       },
       order: ['name ASC']
     });
