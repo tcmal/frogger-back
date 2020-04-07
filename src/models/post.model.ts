@@ -72,8 +72,8 @@ export class Post extends Entity {
       PostVote,
       typeof PostVote.prototype.compoundKey,
       PostVoteRelations
-    >, profile?: UserProfile): Promise<PostWithVotes> {
-    let name = profile ? profile[securityId] : undefined;
+    >, profile: UserProfile): Promise<PostWithVotes> {
+    let name = profile[securityId] ? profile[securityId] : undefined;
 
     const upvotes = await postVoteRepository.count({
       postId: this.id,
@@ -87,11 +87,11 @@ export class Post extends Entity {
     let votesExclUser = upvotes.count - downvotes.count;
     
     let userVote = undefined;
-    if (profile) {
+    if (name) {
       userVote = await postVoteRepository.findOne({
         where: {
           postId: this.id,
-          userName: profile[securityId],
+          userName: name,
         }
       });
 
@@ -111,7 +111,13 @@ export class Post extends Entity {
 export interface PostVotes {
   // describe navigational properties here
   votesExclUser: number,
-  userVote?: PostVote
+  userVote?: PostVote,
 }
 
 export type PostWithVotes = Post & PostVotes;
+
+export interface PostSub {
+  subforum: Subforum
+}
+
+export type PostWithSub = Post & PostSub;

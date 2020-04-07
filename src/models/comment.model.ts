@@ -53,8 +53,8 @@ export class Comment extends Entity {
     super(data);
   }
 
-  async withUserVote(repo: CommentVoteRepository, profile?: UserProfile): Promise<CommentWithRelations> {
-    let name = profile ? profile[securityId] : undefined;
+  async withUserVote(repo: CommentVoteRepository, profile: UserProfile): Promise<CommentWithRelations> {
+    let name = profile[securityId] ? profile[securityId] : undefined;
 
     const upvotes = await repo.count({
       commentId: this.commentId,
@@ -68,11 +68,11 @@ export class Comment extends Entity {
     let votesExclUser = upvotes.count - downvotes.count;
     
     let userVote = undefined;
-    if (profile) {
+    if (name) {
       userVote = await repo.findOne({
         where: {
           commentId: this.commentId,
-          userName: profile[securityId],
+          userName: name,
         }
       });
 

@@ -50,7 +50,7 @@ export class UserSubscriptionController {
     @inject(SecurityBindings.USER)
     profile: UserProfile,
     @param.query.number('limit', {default: 20}) limit: number,
-    @param.query.string('after') after?: string,
+    @param.query.dateTime('after') after?: Date,
   ): Promise<PostWithVotes[]> {
     // Names of subscribed subs
     const subscriptions = (await this.subscriptionRepository.find({
@@ -62,8 +62,11 @@ export class UserSubscriptionController {
     // Get posts form those subs
     const posts = await this.postRepository.find({
       where: {
-        postedTo: {inq: subscriptions}
-      }
+        postedTo: {inq: subscriptions},
+        createdAt: after ? {lt: after} : undefined
+      },
+      limit,
+      order: ['createdAt DESC']
     });
 
     // Get votes for those comments

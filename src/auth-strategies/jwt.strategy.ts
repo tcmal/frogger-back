@@ -1,7 +1,7 @@
 import {inject, Getter} from '@loopback/context';
 import {HttpErrors, Request} from '@loopback/rest';
 import {AuthenticationStrategy, TokenService, AuthenticationBindings, AuthenticationMetadata} from '@loopback/authentication';
-import {UserProfile} from '@loopback/security';
+import {UserProfile, securityId} from '@loopback/security';
 
 import {TokenServiceBindings} from '../keys';
 
@@ -25,6 +25,8 @@ export class JWTAuthenticationStrategy implements AuthenticationStrategy {
     } catch (e) {
       if (!optional)
         throw e;
+      else
+        return {[securityId]: ""}
     }
   }
 

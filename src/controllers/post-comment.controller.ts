@@ -46,7 +46,7 @@ export class PostCommentController {
               type: 'object',
               items: {
                 comments: getModelSchemaRef(Comment, {includeRelations: true}),
-                post: getModelSchemaRef(Post),
+                post: getModelSchemaRef(Post, {includeRelations: true}),
               }
             },
           },
@@ -58,11 +58,13 @@ export class PostCommentController {
   async find(
     @param.path.number('id') id: number,
     @param.query.number('limit', {default: 20}) limit: number,
+    @inject(SecurityBindings.USER)
+    profile: UserProfile,
     @param.query.dateTime('after') after?: Date,
-    @inject(SecurityBindings.USER, {optional: true})
-    profile?: UserProfile,
   ): Promise<{comments: CommentWithRelations[], post: PostWithVotes}> {
-    const post = await this.postRepository.findById(id);
+    const post = await this.postRepository.findById(id, {
+      include: [{relation: "subforum"}]
+    });
     const postWithVotes = await post.withUserVote(this.postVoteRepository, profile);
 
     let scopeRecurse: any = {relation: "replies", scope: {}};
@@ -71,7 +73,7 @@ export class PostCommentController {
     const filter: Filter = {
       where: {
         replyTo: null,
-        createdAt: after ? {gt: after} : undefined,
+        createdAt: after ? {lt: after} : undefined,
       },
       limit,
       order: ["createdAt DESC"],

@@ -31,7 +31,7 @@ export class SubforumController {
         description: 'Subforum model instance',
         content: {
           'application/json': {
-            schema: getModelSchemaRef(Subforum, {exclude: ['ownerName']})
+            schema: getModelSchemaRef(Subforum)
           },
         },
       },
@@ -42,7 +42,7 @@ export class SubforumController {
     @requestBody({
       content: {
         'application/json': {
-          schema: getModelSchemaRef(Subforum),
+          schema: getModelSchemaRef(Subforum, {exclude: ['ownerName']}),
         },
       },
     })

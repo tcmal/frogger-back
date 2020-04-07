@@ -1,5 +1,5 @@
 import {DefaultCrudRepository, repository, BelongsToAccessor, HasManyRepositoryFactory} from '@loopback/repository';
-import {Post, PostWithVotes, Subforum, PostVote, Comment} from '../models';
+import {Post, PostWithSub, Subforum, PostVote, Comment} from '../models';
 import {DbDataSource} from '../datasources';
 import {inject, Getter} from '@loopback/core';
 import {SubforumRepository} from './subforum.repository';
@@ -9,7 +9,7 @@ import {CommentRepository} from './comment.repository';
 export class PostRepository extends DefaultCrudRepository<
   Post,
   typeof Post.prototype.id,
-  PostWithVotes
+  PostWithSub
 > {
 
   public readonly subforum: BelongsToAccessor<Subforum, typeof Post.prototype.id>;
