@@ -2,7 +2,6 @@ import {DefaultCrudRepository} from '@loopback/repository';
 import {Entity, model, property, belongsTo, hasMany} from '@loopback/repository';
 import {UserProfile, securityId} from '@loopback/security';
 
-import {PostVoteRepository} from '../repositories/'
 import {Subforum} from './subforum.model';
 import {PostVote, PostVoteRelations} from './post-vote.model';
 import {Comment} from './comment.model';
@@ -73,7 +72,7 @@ export class Post extends Entity {
       typeof PostVote.prototype.compoundKey,
       PostVoteRelations
     >, profile: UserProfile): Promise<PostWithVotes> {
-    let name = profile[securityId] ? profile[securityId] : undefined;
+    const name = profile[securityId] ? profile[securityId] : undefined;
 
     const upvotes = await postVoteRepository.count({
       postId: this.id,

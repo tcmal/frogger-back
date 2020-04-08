@@ -16,7 +16,7 @@ export class JWTAuthenticationStrategy implements AuthenticationStrategy {
   ) {}
 
   async authenticate(request: Request, options?: object): Promise<UserProfile | undefined> {
-    const { optional } = (await this.getMetaData()).options || {optional: false};
+    const { optional } = (await this.getMetaData()).options ?? {optional: false};
 
     try {
       const token: string = this.extractCredentials(request);

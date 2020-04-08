@@ -53,7 +53,7 @@ export class SubforumPostController {
     profile: UserProfile,
     @param.query.dateTime('after') after?: Date,
   ): Promise<PostWithVotes[]> {
-    let posts = await this.postRepository.find({
+    const posts = await this.postRepository.find({
       where: {
         createdAt: after ? {lt: after} : undefined
       },
@@ -61,7 +61,7 @@ export class SubforumPostController {
       order: ['createdAt DESC']
     });
 
-    const postsWithVotes: PostWithVotes[] = await Promise.all(posts.map(async post => post.withUserVote(this.postVoteRepository, profile)));
+    const postsWithVotes: PostWithVotes[] = await Promise.all(posts.map(async p => p.withUserVote(this.postVoteRepository, profile)));
 
     return postsWithVotes;
   };
@@ -77,7 +77,9 @@ export class SubforumPostController {
                 ...getModelSchemaRef(Subforum),
                 userIsSubscribed: 'boolean'
               },
-              posts: {type: 'array', items: {
+              posts: {
+                type: 'array',
+                items: {
                   ...getModelSchemaRef(Post),
                   votesExclUser: 'number',
                   userVote: getModelSchemaRef(PostVote, {exclude: ['compoundKey']})
@@ -96,18 +98,18 @@ export class SubforumPostController {
     @inject(SecurityBindings.USER)
     profile: UserProfile,
     @param.query.dateTime('after') after?: Date,
-  ): Promise<{subforum: any, posts: PostWithVotes[]}> {
-    let posts = await this.subforumRepository.posts(id).find({ where: {createdAt: after ? {lt: after} : undefined}, limit, order: ['createdAt DESC'] });
+  ): Promise<{subforum: Subforum | {userIsSubscribed: boolean}, posts: PostWithVotes[]}> {
+    const posts = await this.subforumRepository.posts(id).find({ where: {createdAt: after ? {lt: after} : undefined}, limit, order: ['createdAt DESC'] });
 
-    const postsWithVotes: PostWithVotes[] = await Promise.all(posts.map(async post => post.withUserVote(this.postVoteRepository, profile)));
+    const postsWithVotes: PostWithVotes[] = await Promise.all(posts.map(async p => p.withUserVote(this.postVoteRepository, profile)));
 
     return {
       subforum: {
         ...(await this.subforumRepository.findById(id)),
-        userIsSubscribed: profile[securityId] && (await this.subscriptionRepository.count({
+        userIsSubscribed: profile[securityId] ? (await this.subscriptionRepository.count({
           userName: profile[securityId],
           subName: id,
-        })).count > 0
+        })).count > 0 : false
       },
       posts: postsWithVotes
     };
@@ -116,7 +118,7 @@ export class SubforumPostController {
   @post('/subs/{id}/posts', {
     responses: {
       '200': {
-        description: 'Subforum model instance',
+        description: 'Post instance',
         content: {'application/json': {schema: getModelSchemaRef(Post)}},
       },
     },
@@ -128,7 +130,7 @@ export class SubforumPostController {
       content: {
         'application/json': {
           schema: getModelSchemaRef(Post, {
-            title: 'NewPostInSubforum',
+            title: 'NewPost',
             exclude: ['id', 'postedTo', 'postedBy', 'createdAt'],
           }),
         },

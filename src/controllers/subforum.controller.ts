@@ -1,7 +1,6 @@
 import {
   repository,
   Count,
-  CountSchema,
 } from '@loopback/repository';
 import {
   post,
@@ -28,7 +27,7 @@ export class SubforumController {
     security: LOGGED_IN,
     responses: {
       '200': {
-        description: 'Subforum model instance',
+        description: 'Subforum instance',
         content: {
           'application/json': {
             schema: getModelSchemaRef(Subforum)
@@ -70,7 +69,12 @@ export class SubforumController {
     @requestBody({
       content: {
         'application/json': {
-          schema: CountSchema,
+          schema: {
+            type: 'object',
+            properties: {
+              description: {type: 'string'},
+            },
+          },
         },
       },
     })
@@ -86,11 +90,6 @@ export class SubforumController {
     responses: {
       '204': {
         description: 'Subforum DELETE success',
-        content: {
-          'application/json': {
-            schema: CountSchema
-          }
-        }
       },
     },
   })
@@ -98,7 +97,7 @@ export class SubforumController {
   async deleteById(@param.path.string('id') id: string,
     @inject(SecurityBindings.USER)
     profile: UserProfile,
-    ): Promise<Count> {
-    return this.subforumRepository.deleteAll({name: id, ownerName: profile.name});
+    ): Promise<void> {
+    await this.subforumRepository.deleteAll({name: id, ownerName: profile.name});
   }
 }

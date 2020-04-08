@@ -54,7 +54,7 @@ export class Comment extends Entity {
   }
 
   async withUserVote(repo: CommentVoteRepository, profile: UserProfile): Promise<CommentWithRelations> {
-    let name = profile[securityId] ? profile[securityId] : undefined;
+    const name = profile[securityId] ? profile[securityId] : undefined;
 
     const upvotes = await repo.count({
       commentId: this.commentId,

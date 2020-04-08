@@ -13,7 +13,7 @@ import {
 import {inject} from '@loopback/core';
 import {authenticate} from '@loopback/authentication';
 import {SecurityBindings, UserProfile, securityId} from '@loopback/security';
-import {Subscription, Subforum, Post, PostVote, PostWithVotes} from '../models';
+import {Subscription, Subforum, Post, PostWithVotes} from '../models';
 import {PostRepository, PostVoteRepository, UserRepository, SubforumRepository, SubscriptionRepository} from '../repositories';
 import {LOGGED_IN} from '../spec';
 
@@ -70,7 +70,7 @@ export class UserSubscriptionController {
     });
 
     // Get votes for those comments
-    const postsWithComments = Promise.all(posts.map(post => post.withUserVote(this.postVoteRepository, profile)));
+    const postsWithComments = Promise.all(posts.map(p => p.withUserVote(this.postVoteRepository, profile)));
 
     return postsWithComments;
   }  
@@ -125,21 +125,21 @@ export class UserSubscriptionController {
     });
 
     // Merge the two together, maintaining sort order
-    let merged = [];
-    let owned_idx = 0, subs_idx = 0;
+    const merged = [];
+    let ownedIdx = 0, subsIdx = 0;
     while (merged.length < (owned.length + subscribedTo.length)) {
-      if (owned_idx >= owned.length) {
-        merged.push(subscribedTo[subs_idx]);
-        subs_idx++;
-      } else if (subs_idx >= subscribedTo.length){
-        merged.push(owned[owned_idx]);
-        owned_idx++;
-      } else if (owned[owned_idx].name >= subscribedTo[subs_idx].name) {
-        merged.push(subscribedTo[subs_idx]);
-        subs_idx++;
+      if (ownedIdx >= owned.length) {
+        merged.push(subscribedTo[subsIdx]);
+        subsIdx++;
+      } else if (subsIdx >= subscribedTo.length){
+        merged.push(owned[ownedIdx]);
+        ownedIdx++;
+      } else if (owned[ownedIdx].name >= subscribedTo[subsIdx].name) {
+        merged.push(subscribedTo[subsIdx]);
+        subsIdx++;
       } else {
-        merged.push(owned[owned_idx]);
-        owned_idx++;
+        merged.push(owned[ownedIdx]);
+        ownedIdx++;
       }
     }
 

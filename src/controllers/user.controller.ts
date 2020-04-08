@@ -110,7 +110,7 @@ export class UserController {
 
     const token = await this.tokenService.generateToken(profile);
 
-    let expires = new Date();
+    const expires = new Date();
     expires.setTime(expires.getTime() + (this.expiresIn * 1000));
 
     return {
@@ -146,7 +146,7 @@ export class UserController {
 
     const token = await this.tokenService.generateToken(newProfile);
 
-    let expires = new Date();
+    const expires = new Date();
     expires.setTime(expires.getTime() + (this.expiresIn * 1000));
 
     return {

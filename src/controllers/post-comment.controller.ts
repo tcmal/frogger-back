@@ -1,19 +1,13 @@
 import {
-  Count,
-  CountSchema,
   Filter,
   repository,
-  Where,
-  Inclusion,
 } from '@loopback/repository';
 import {
   del,
   get,
   getModelSchemaRef,
-  getWhereSchemaFor,
-  param,
-  patch,
   post,
+  param,
   requestBody,
   HttpErrors,
 } from '@loopback/rest';
@@ -64,13 +58,10 @@ export class PostCommentController {
     profile: UserProfile,
     @param.query.dateTime('after') after?: Date,
   ): Promise<{comments: CommentWithRelations[], post: PostWithVotes}> {
-    const post = await this.postRepository.findById(id, {
+    const thePost = await this.postRepository.findById(id, {
       include: [{relation: "subforum"}]
     });
-    const postWithVotes = await post.withUserVote(this.postVoteRepository, profile);
-
-    let scopeRecurse: any = {relation: "replies", scope: {}};
-    scopeRecurse.scope.include = [scopeRecurse];
+    const postWithVotes = await thePost.withUserVote(this.postVoteRepository, profile);
 
     const filter: Filter = {
       where: {
@@ -79,7 +70,12 @@ export class PostCommentController {
       },
       limit,
       order: ["createdAt DESC"],
-      include: [scopeRecurse]
+      include: [{
+        relation: "replies",
+        scope: {
+          include: [{relation: "replies"}]
+        }
+      }]
     }
 
     const comments: CommentWithRelations[] = await Promise.all(
@@ -97,7 +93,7 @@ export class PostCommentController {
     security: LOGGED_IN,
     responses: {
       '200': {
-        description: 'Comment to post',
+        description: 'Comment submitted',
         content: {'application/json': {schema: getModelSchemaRef(Comment)}},
       },
     },
@@ -136,8 +132,7 @@ export class PostCommentController {
     security: LOGGED_IN,
     responses: {
       '200': {
-        description: 'Post.Comment DELETE success count',
-        content: {'application/json': {schema: CountSchema}},
+        description: 'Comment deleted',
       },
     },
   })
@@ -158,12 +153,12 @@ export class PostCommentController {
     }) comment: {commentId: number},
     @inject(SecurityBindings.USER)
     profile: UserProfile,
-  ): Promise<Count> {
-    const post = await this.postRepository.findById(id, {include: [{relation: "subforum"}]});
-    if (post.subforum.ownerName != profile[securityId])
+  ): Promise<void> {
+    const thePost = await this.postRepository.findById(id, {include: [{relation: "subforum"}]});
+    if (thePost.subforum.ownerName !== profile[securityId])
       throw new HttpErrors.BadRequest("You don't own the subforum of this post");
 
-    return this.postRepository.comments(id).delete({
+    await this.postRepository.comments(id).delete({
       commentId: comment.commentId
     });
   }
